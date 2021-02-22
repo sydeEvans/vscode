@@ -39,6 +39,7 @@ export class ExtensionHostMain {
 	private readonly _extensionService: IExtHostExtensionService;
 	private readonly _logService: ILogService;
 	private readonly _disposables = new DisposableStore();
+	instaService:IInstantiationService;
 
 	constructor(
 		protocol: IMessagePassingProtocol,
@@ -61,7 +62,7 @@ export class ExtensionHostMain {
 		services.set(IHostUtils, hostUtils);
 
 		const instaService: IInstantiationService = new InstantiationService(services, true);
-
+		this.instaService = instaService;
 		// ugly self - inject
 		const terminalService = instaService.invokeFunction(accessor => accessor.get(IExtHostTerminalService));
 		this._disposables.add(terminalService);

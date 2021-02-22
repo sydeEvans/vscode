@@ -35,6 +35,10 @@ const ALLOWED_CORS_ORIGINS = [
 	'http://127.0.0.1:8081',
 	'http://localhost:8080',
 	'http://127.0.0.1:8080',
+	'http://localhost:9001',
+	'http://127.0.0.1:9001',
+	'http://localhost:9002',
+	'http://127.0.0.1:9002',
 ];
 
 const WEB_PLAYGROUND_VERSION = '0.0.10';
@@ -426,6 +430,8 @@ async function handleRoot(req, res) {
 		accessToken: args['github-auth'],
 		scopes: [['user:email'], ['repo']]
 	} : undefined;
+
+	fs.writeFileSync(path.join(__dirname, 'tmp.json'), JSON.stringify(dedupedBuiltInExtensions))
 
 	const data = (await readFile(WEB_MAIN)).toString()
 		.replace('{{WORKBENCH_WEB_CONFIGURATION}}', () => escapeAttribute(JSON.stringify(webConfigJSON))) // use a replace function to avoid that regexp replace patterns ($&, $0, ...) are applied

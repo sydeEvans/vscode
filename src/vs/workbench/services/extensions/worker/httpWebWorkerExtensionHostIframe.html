@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html>
 	<head>
-		<meta http-equiv="Content-Security-Policy" content="default-src 'none'; child-src 'self' data: blob:; script-src 'unsafe-eval' 'sha256-LU+tuagpyx5mKuYgHsSvz9593ZGS6yeLPRvzq1lKXlY=' http: https:; connect-src http: https: ws: wss:" />
 	</head>
 	<body>
 	<script>
@@ -26,6 +25,15 @@
 
 		worker.onmessage = (event) => {
 			const { data } = event;
+
+			// hook my message
+			if (data?.type === '_ragdollEvent') {
+				window.parent.postMessage({
+					type: '_ragdollEvent',
+					channel: data.channel
+				}, '*', [data.channel]);
+				return;
+			}
 
 			if (data?.type === '_newWorker') {
 				const { id, port, url, options } = data;

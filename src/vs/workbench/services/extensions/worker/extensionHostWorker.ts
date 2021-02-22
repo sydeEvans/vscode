@@ -16,6 +16,7 @@ import * as performance from 'vs/base/common/performance';
 
 import 'vs/workbench/api/common/extHost.common.services';
 import 'vs/workbench/api/worker/extHost.worker.services';
+import { ragdollWorkerInject } from "vs/workbench/services/extensions/worker/ragdollWorkerInject";
 
 //#region --- Define, capture, and override some globals
 
@@ -161,7 +162,7 @@ let onTerminate = (reason: string) => nativeClose();
 			hostUtil,
 			null,
 		);
-
+		ragdollWorkerInject(extHostMain, nativePostMessage);
 		onTerminate = (reason: string) => extHostMain.terminate(reason);
 	});
 })();
