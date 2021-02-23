@@ -25,7 +25,6 @@ export function ragdollWorkerInject(extHostMain: ExtensionHostMain, nativePostMe
 		function createFileSystemWatcher(globPattern: string, ignoreCreateEvents?: boolean, ignoreChangeEvents?: boolean, ignoreDeleteEvents?: boolean){
 			return extHostFileSystemEvent.createFileSystemWatcher(typeConverters.GlobPattern.from(globPattern), ignoreCreateEvents, ignoreChangeEvents, ignoreDeleteEvents);
 		}
-
 		const watcher = createFileSystemWatcher("**");
 
 		const fsChannel = new MessageChannel();
@@ -45,7 +44,7 @@ export function ragdollWorkerInject(extHostMain: ExtensionHostMain, nativePostMe
 			// 1: file 2: Directory
 			const fileType = fsStat.type;
 			let data:any = {};
-
+			extHostLogService.info('onDidChange', file);
 			if (fileType === 1) {
 				const fileContent = await fs.readFile(file);
 				data = {
@@ -66,6 +65,31 @@ export function ragdollWorkerInject(extHostMain: ExtensionHostMain, nativePostMe
 			fsChannel.port1.postMessage(data);
 		});
 
+		watcher.onDidDelete(async (file) => {
+			if (file.scheme !== 'memfs') return;
+			extHostLogService.info('onDidDelete', file);
+			const files = await readDir(URI.from({ scheme: 'memfs', path: '/project'}));
+			const data = {
+				type: 'refresh',
+				data: {
+					files
+				},
+			};
+			fsChannel.port1.postMessage(data);
+		});
+
+		watcher.onDidCreate(async (file) => {
+			if (file.scheme !== 'memfs') return;
+			extHostLogService.info('onDidCreate', file);
+			const data = {
+				type: 'fileOrDirCreate',
+				data: {
+					fspath: file.path
+				},
+			};
+			fsChannel.port1.postMessage(data);
+		});
+
 		function handlerRemoteCommand(msg: any) {
 			console.log(msg.type, msg);
 			switch (msg.type){
@@ -80,6 +104,29 @@ export function ragdollWorkerInject(extHostMain: ExtensionHostMain, nativePostMe
 		function writeFile(file: any) {
 			const { code, path } = file;
 			fs.writeFile(URI.parse(`memfs:/project${path}`), textEncoder.encode(code));
+		}
+
+		async function readDir(root: URI, store: any[] = []) {
+			const files = await fs.readDirectory(root);
+			await Promise.all(
+				files.map(async f => {
+					const [fsname, fstype] = f;
+					if (fstype === 1) {
+						const fileUri = URI.from({scheme: 'memfs', path: root.fsPath + '/' + fsname});
+						const fscontent = await fs.readFile(fileUri);
+						// 文件
+						store.push({
+							uri: fileUri,
+							fscontent: textDecoder.decode(fscontent)
+						});
+					} else {
+						// 文件夹
+						const subRoot = URI.from({scheme: 'memfs', path: root.fsPath + '/' + fsname});
+						await readDir(subRoot, store);
+					}
+				})
+			);
+			return store;
 		}
 	});
 }
